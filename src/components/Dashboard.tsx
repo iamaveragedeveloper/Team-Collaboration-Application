@@ -2,17 +2,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import ProjectPage from './ProjectPage';
 import CreateProjectModal from './CreateProjectModal';
+import type { Session } from '@supabase/supabase-js';
 
 // This interface defines the shape of our progress state
 interface ProgressState {
   done: number;
   total: number;
-  inProgress: number; // The missing property is now defined
+  inProgress: number;
   loading: boolean;
 }
 
+// Define an interface for the Dashboard's props
+interface DashboardProps {
+  session: Session;
+  onNavigateToProfile?: () => void; // Make this prop optional
+}
+
 const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }) => {
-  // Initialize the state with all required properties
+  // ... (rest of the ProjectCard component is unchanged)
   const [progress, setProgress] = useState<ProgressState>({
     done: 0,
     total: 0,
@@ -31,7 +38,6 @@ const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }
         const total = data.length;
         const done = data.filter(t => t.status === 'done').length;
         const inProgress = data.filter(t => t.status === 'in_progress').length;
-        // This setProgress call now matches the state's shape
         setProgress({ done, total, inProgress, loading: false });
       } else {
         setProgress({ done: 0, total: 0, inProgress: 0, loading: false });
@@ -56,13 +62,13 @@ const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }
   );
 };
 
-export default function Dashboard({ session }: { session: any }) {
+// Use the new DashboardProps interface here
+export default function Dashboard({ session }: DashboardProps) {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Wrap getProjects in useCallback to fix the exhaustive-deps warning
   const getProjects = useCallback(async () => {
     setLoading(true);
     const { user } = session;
@@ -81,7 +87,6 @@ export default function Dashboard({ session }: { session: any }) {
     setLoading(false);
   }, [session]);
 
-  // The dependency array is now correct
   useEffect(() => {
     getProjects();
   }, [getProjects]);
