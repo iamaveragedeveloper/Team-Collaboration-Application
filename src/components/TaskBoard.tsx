@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { DndContext, closestCorners, DragEndEvent, DragOverlay, DragStartEvent, useDroppable } from '@d-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@d-kit/sortable';
+import { DndContext, closestCorners, DragEndEvent, DragOverlay, DragStartEvent, useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { supabase } from '../lib/supabaseClient';
 import CreateTaskModal from './CreateTaskModal';
 import TaskCard from './TaskCard';
