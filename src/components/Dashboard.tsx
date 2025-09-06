@@ -1,12 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import ProjectPage from './ProjectPage';
-import CreateProjectModal from './CreateProjectModal';
+import { supabase } from '@/lib/supabaseClient';
+import ProjectPage from '@/components/ProjectPage';
+import CreateProjectModal from '@/components/CreateProjectModal';
 import type { Session } from '@supabase/supabase-js';
 
-// Define ProgressState interface
+// Define a simple type for the user profile
+interface Profile {
+  name?: string;
+  email?: string;
+}
+
 interface ProgressState {
   done: number;
   total: number;
@@ -14,7 +19,6 @@ interface ProgressState {
   loading: boolean;
 }
 
-// The ProjectCard component needs to be defined here, in the same file as Dashboard
 const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }) => {
   const [progress, setProgress] = useState<ProgressState>({
     done: 0,
@@ -55,7 +59,6 @@ const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }
           {project.description || 'No description provided.'}
         </p>
       </div>
-
       <div className="mt-4">
         <div className="flex justify-between items-center mb-1">
           <span className="text-xs font-medium text-gray-500">{progress.done} of {progress.total} tasks done</span>
@@ -72,14 +75,13 @@ const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }
   );
 };
 
-
-// Define props interface for Dashboard
+// Define an interface for the Dashboard's props
 interface DashboardProps {
   session: Session;
-  onNavigateToProfile?: () => void;
+  profile: Profile | null;
 }
 
-export default function Dashboard({ session }: DashboardProps) {
+export default function Dashboard({ session, profile }: DashboardProps) {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
@@ -116,7 +118,7 @@ export default function Dashboard({ session }: DashboardProps) {
   };
 
   if (selectedProject) {
-    return <ProjectPage project={selectedProject} session={session} onBack={() => setSelectedProject(null)} />;
+    return <ProjectPage project={selectedProject} session={session} profile={profile} onBack={() => setSelectedProject(null)} />;
   }
 
   return (
@@ -171,3 +173,4 @@ export default function Dashboard({ session }: DashboardProps) {
     </div>
   );
 }
+
