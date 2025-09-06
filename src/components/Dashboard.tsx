@@ -1,11 +1,79 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import ProjectPage from './ProjectPage';
 import CreateProjectModal from './CreateProjectModal';
 import type { Session } from '@supabase/supabase-js';
 
-// ... (ProgressState and ProjectCard components remain the same) ...
+// Define ProgressState interface
+interface ProgressState {
+  done: number;
+  total: number;
+  inProgress: number;
+  loading: boolean;
+}
 
+// The ProjectCard component needs to be defined here, in the same file as Dashboard
+const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }) => {
+  const [progress, setProgress] = useState<ProgressState>({
+    done: 0,
+    total: 0,
+    inProgress: 0,
+    loading: true,
+  });
+
+  useEffect(() => {
+    const fetchTaskStats = async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('status')
+        .eq('project_id', project.id);
+      
+      if (!error && data) {
+        const total = data.length;
+        const done = data.filter(t => t.status === 'done').length;
+        const inProgress = data.filter(t => t.status === 'in_progress').length;
+        setProgress({ done, total, inProgress, loading: false });
+      } else {
+        setProgress({ done: 0, total: 0, inProgress: 0, loading: false });
+      }
+    };
+    fetchTaskStats();
+  }, [project.id]);
+
+  const percentage = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+
+  return (
+    <div 
+      onClick={onClick} 
+      className="group flex flex-col justify-between p-5 bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-primary-500 hover:shadow-lg transition-all duration-200"
+    >
+      <div>
+        <h3 className="text-base font-bold text-gray-800 group-hover:text-primary-600 truncate">{project.name}</h3>
+        <p className="text-sm text-gray-500 mt-2 h-10 overflow-hidden">
+          {project.description || 'No description provided.'}
+        </p>
+      </div>
+
+      <div className="mt-4">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-xs font-medium text-gray-500">{progress.done} of {progress.total} tasks done</span>
+          <span className="text-xs font-bold text-gray-600">{percentage}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-primary-500 h-2 rounded-full transition-all duration-500" 
+            style={{ width: `${percentage}%` }}
+          ></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// Define props interface for Dashboard
 interface DashboardProps {
   session: Session;
   onNavigateToProfile?: () => void;
@@ -23,7 +91,7 @@ export default function Dashboard({ session }: DashboardProps) {
 
     const { data, error } = await supabase
       .from('projects')
-      .select('id, name, description') // Fetch description for the card
+      .select('id, name, description')
       .eq('created_by', user.id)
       .order('created_at', { ascending: false });
 
@@ -58,7 +126,6 @@ export default function Dashboard({ session }: DashboardProps) {
           <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
           <p className="text-gray-500 mt-1">Your central hub for all collaborative work.</p>
         </div>
-        {/* Updated "box" for buttons */}
         <div className="flex items-center space-x-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
             <button
                 onClick={() => setShowCreateModal(true)}
@@ -84,7 +151,7 @@ export default function Dashboard({ session }: DashboardProps) {
       )}
 
       {loading ? (
-        <p>Loading projects...</p>
+        <div className="text-center py-16"><p>Loading projects...</p></div>
       ) : projects.length === 0 ? (
         <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-lg">
             <h3 className="text-xl font-semibold text-gray-800">No projects yet!</h3>
