@@ -1,0 +1,24 @@
+import type { Metadata } from 'next';
+// THE FIX: We are changing './globals.css' to a more robust path
+// starting from the src directory.
+import '@/app/globals.css';
+
+export const metadata: Metadata = {
+  title: 'SynergySphere - Team Collaboration',
+  description: 'A modern team collaboration application with project management and real-time chat',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body className="min-h-screen bg-gray-50 text-gray-800">
+        {children}
+      </body>
+    </html>
+  );
+}
+
