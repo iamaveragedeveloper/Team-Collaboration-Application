@@ -1,5 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Define standard CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // Define a custom error class
 class ApplicationError extends Error {
   constructor(message, data = {}) {
@@ -9,6 +15,11 @@ class ApplicationError extends Error {
 }
 
 Deno.serve(async (req) => {
+  // This is needed for CORS preflight requests.
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
     const { projectId, inviteeEmail } = await req.json();
 
@@ -30,7 +41,7 @@ Deno.serve(async (req) => {
     }
 
     // 2. Check if the user is already a member
-    const { data: existingMember, error: existingMemberError } = await supabaseAdmin
+    const { data: existingMember } = await supabaseAdmin
       .from('project_members')
       .select('id')
       .eq('project_id', projectId)
@@ -51,13 +62,13 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ message: "User invited successfully!" }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
 
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: err.status || 500,
     });
   }
