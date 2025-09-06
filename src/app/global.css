@@ -1,24 +1,56 @@
-import type { Metadata } from 'next';
-// THE FIX: We are changing './globals.css' to a more robust path
-// starting from the src directory.
-import '@/app/globals.css';
+/* This is the entry point for all of your application's styles.
+  The @tailwind directives inject Tailwind's base, component, and utility styles.
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-export const metadata: Metadata = {
-  title: 'SynergySphere - Team Collaboration',
-  description: 'A modern team collaboration application with project management and real-time chat',
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-800">
-        {children}
-      </body>
-    </html>
-  );
+/* Define CSS variables for theming (light and dark mode).
+  These are used to set the default background and text colors.
+*/
+:root {
+  --background: #f9fafb; /* A light gray for the body background */
+  --foreground: #111827; /* A dark gray for text */
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* Apply the base styles to the body of the application.
+  We use the CSS variables defined above.
+*/
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* Add custom utility classes and animations.
+  This allows you to create reusable styles and effects.
+*/
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Keyframes for the notification slide-in animation */
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* The utility class that applies the animation */
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
+}
