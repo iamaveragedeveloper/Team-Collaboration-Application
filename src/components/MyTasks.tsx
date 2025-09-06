@@ -2,10 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-// Import the corrected type from the central types file
+// Import the corrected MyTask type
 import type { MyTask } from '../types';
-
-// The local interface definition for MyTask has been removed from here.
 
 interface User {
   id: string;
@@ -33,7 +31,6 @@ export default function MyTasks({ user }: MyTasksProps) {
           status,
           projects ( name )
         `)
-        // This query assumes tasks have an 'assignee' column, which should be 'assigned_to'
         .eq('assigned_to', user.id) 
         .neq('status', 'done')
         .order('due_date', { ascending: true, nullsFirst: false });
@@ -42,7 +39,7 @@ export default function MyTasks({ user }: MyTasksProps) {
         console.error("Error fetching user's tasks:", error);
         setMyTasks([]);
       } else {
-        // The type assertion now works correctly because the MyTask type matches the data shape.
+        // The type assertion will now work correctly
         setMyTasks(data as MyTask[] || []);
       }
       setLoading(false);
@@ -74,8 +71,8 @@ export default function MyTasks({ user }: MyTasksProps) {
               <div key={task.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <h4 className="font-medium text-gray-900">{task.title}</h4>
-                   {/* This code now works correctly with the updated type */}
-                  <p className="text-sm text-gray-600">Project: {task.projects?.name || 'N/A'}</p>
+                   {/* FIX: Safely access the project name from the first element of the array */}
+                  <p className="text-sm text-gray-600">Project: {task.projects && task.projects[0] ? task.projects[0].name : 'N/A'}</p>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-medium text-gray-700">
