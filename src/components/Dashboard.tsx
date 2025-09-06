@@ -19,7 +19,6 @@ interface DashboardProps {
 }
 
 const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }) => {
-  // ... (rest of the ProjectCard component is unchanged)
   const [progress, setProgress] = useState<ProgressState>({
     done: 0,
     total: 0,
@@ -47,16 +46,90 @@ const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }
   }, [project.id]);
 
   const percentage = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  
+  const getProgressColor = () => {
+    if (percentage >= 100) return 'bg-success-500';
+    if (percentage >= 75) return 'bg-primary-500';
+    if (percentage >= 50) return 'bg-warning-500';
+    if (percentage >= 25) return 'bg-warning-400';
+    return 'bg-gray-400';
+  };
+
+  const getStatusBadge = () => {
+    if (percentage >= 100) return { color: 'bg-success-100 text-success-800', label: 'Complete' };
+    if (percentage >= 75) return { color: 'bg-primary-100 text-primary-800', label: 'Active' };
+    if (percentage >= 25) return { color: 'bg-warning-100 text-warning-800', label: 'In Progress' };
+    return { color: 'bg-gray-100 text-gray-800', label: 'Planning' };
+  };
+
+  const statusBadge = getStatusBadge();
 
   return (
-    <div onClick={onClick} className="p-6 bg-white rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow">
-      <h3 className="text-lg font-semibold truncate">{project.name}</h3>
-      <p className="text-sm text-gray-500 mt-2">{progress.done} of {progress.total} tasks complete</p>
-      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
-        <div 
-          className="bg-green-500 h-2.5 rounded-full" 
-          style={{ width: `${percentage}%` }}
-        ></div>
+    <div 
+      onClick={onClick} 
+      className="group flex flex-col justify-between p-5 bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:border-primary-300 hover:shadow-lg transition-all duration-200"
+    >
+      {/* Header Section */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base font-bold text-gray-800 group-hover:text-primary-600 transition-colors truncate mb-1">
+            {project.name}
+          </h3>
+          <p className="text-sm text-gray-500 line-clamp-2 h-10 leading-5">
+            {project.description || 'No description provided.'}
+          </p>
+        </div>
+        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusBadge.color} ml-3 flex-shrink-0`}>
+          {statusBadge.label}
+        </span>
+      </div>
+
+      {/* Progress Section */}
+      <div className="mt-auto">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-xs font-medium text-gray-600">
+            {progress.loading ? 'Loading...' : `${progress.done} of ${progress.total} tasks completed`}
+          </span>
+          <span className="text-xs font-bold text-gray-700">{percentage}%</span>
+        </div>
+        
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+          <div 
+            className={`h-2 rounded-full transition-all duration-500 ease-out ${getProgressColor()}`} 
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+
+        {/* Task breakdown with modern styling */}
+        {!progress.loading && progress.total > 0 && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3 text-xs">
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <span className="text-gray-600">{progress.total - progress.done - progress.inProgress}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-primary-400 rounded-full"></div>
+                <span className="text-gray-600">{progress.inProgress}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-success-400 rounded-full"></div>
+                <span className="text-gray-600">{progress.done}</span>
+              </div>
+            </div>
+            <div className="text-gray-400 group-hover:text-primary-500 transition-colors">
+              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {progress.total === 0 && !progress.loading && (
+          <div className="text-center py-2">
+            <span className="text-xs text-gray-500">No tasks yet</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -110,13 +183,13 @@ export default function Dashboard({ session }: DashboardProps) {
         <div className="flex items-center space-x-4">
             <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                className="btn-primary"
             >
                 + New Project
             </button>
             <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700"
+                className="btn-secondary"
             >
                 Logout
             </button>

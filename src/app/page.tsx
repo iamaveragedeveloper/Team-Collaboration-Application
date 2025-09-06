@@ -85,9 +85,9 @@ const DashboardWithNavigation = ({
             <div className="flex items-center space-x-4">
               <button
                 onClick={onNavigateToProfile}
-                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors"
+                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors focus-ring"
               >
-                <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
                   <span className="text-xs font-medium text-white">
                     {session.user.email?.[0]?.toUpperCase() || '?'}
                   </span>
