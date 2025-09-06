@@ -2,17 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+// Import the corrected type from the central types file
+import type { MyTask } from '../types';
 
-interface MyTask {
-  id: string;
-  title: string;
-  due_date: string | null;
-  status: string;
-  // FIX: 'projects' is now correctly typed as a single object, not an array.
-  projects: {
-    name: string;
-  } | null; // It can also be null if the join finds nothing.
-}
+// The local interface definition for MyTask has been removed from here.
 
 interface User {
   id: string;
@@ -40,8 +33,8 @@ export default function MyTasks({ user }: MyTasksProps) {
           status,
           projects ( name )
         `)
-        // This query assumes tasks have an 'assignee' column
-        .eq('assignee', user.id) 
+        // This query assumes tasks have an 'assignee' column, which should be 'assigned_to'
+        .eq('assigned_to', user.id) 
         .neq('status', 'done')
         .order('due_date', { ascending: true, nullsFirst: false });
       
@@ -49,7 +42,7 @@ export default function MyTasks({ user }: MyTasksProps) {
         console.error("Error fetching user's tasks:", error);
         setMyTasks([]);
       } else {
-        // The data from Supabase has the correct shape now
+        // The type assertion now works correctly because the MyTask type matches the data shape.
         setMyTasks(data as MyTask[] || []);
       }
       setLoading(false);
@@ -81,7 +74,7 @@ export default function MyTasks({ user }: MyTasksProps) {
               <div key={task.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <h4 className="font-medium text-gray-900">{task.title}</h4>
-                   {/* Safely access the project name */}
+                   {/* This code now works correctly with the updated type */}
                   <p className="text-sm text-gray-600">Project: {task.projects?.name || 'N/A'}</p>
                 </div>
                 <div className="text-right">

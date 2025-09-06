@@ -1,3 +1,5 @@
+// src/types/index.ts
+
 export interface Project {
   id: string;
   name: string;
@@ -27,10 +29,10 @@ export interface MyTask {
   title: string;
   due_date: string | null;
   status: string;
-  // FIX: This now correctly expects 'projects' to be an array of project objects.
+  // FIX: This now correctly expects 'projects' to be a single object or null.
   projects: {
     name: string;
-  }[];
+  } | null;
 }
 
 
