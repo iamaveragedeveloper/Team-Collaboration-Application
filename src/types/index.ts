@@ -21,6 +21,19 @@ export interface Task {
   updated_at?: string;
 }
 
+// This is the new, corrected type for tasks shown in the "My Tasks" list
+export interface MyTask {
+  id: string;
+  title: string;
+  due_date: string | null;
+  status: string;
+  // FIX: This now correctly expects 'projects' to be an array of project objects.
+  projects: {
+    name: string;
+  }[];
+}
+
+
 export interface User {
   id: string;
   email: string;
