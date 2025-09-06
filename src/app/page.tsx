@@ -26,7 +26,6 @@ export default function App() {
     // Check for an active session when the app loads
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      // Don't set loading false until profile is also checked
     });
 
     // Listen for changes in authentication state (login/logout)
@@ -44,6 +43,7 @@ export default function App() {
   useEffect(() => {
     if (session) {
       const fetchProfile = async () => {
+        setLoading(true);
         const { data, error } = await supabase
           .from('profiles')
           .select('name, email')
@@ -83,7 +83,6 @@ export default function App() {
         return <ProfilePage session={session} onBack={() => setCurrentPage('dashboard')} />;
       case 'dashboard':
       default:
-        // The Dashboard is wrapped to include top navigation
         return <DashboardWithNavigation session={session} profile={profile} onNavigateToProfile={() => setCurrentPage('profile')} />;
     }
   };
@@ -106,7 +105,6 @@ const DashboardWithNavigation = ({
   profile: Profile | null;
   onNavigateToProfile: () => void; 
 }) => {
-  // Determine the initial for the avatar
   const getInitial = () => {
     if (profile?.name) return profile.name[0].toUpperCase();
     if (session.user.email) return session.user.email[0].toUpperCase();
@@ -126,7 +124,6 @@ const DashboardWithNavigation = ({
                 onClick={onNavigateToProfile}
                 className="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                {/* Updated name display */}
                 <span className="hidden sm:block font-semibold">{profile?.name || session.user.email}</span>
                 <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
                   <span className="text-sm font-medium text-white">
@@ -138,8 +135,8 @@ const DashboardWithNavigation = ({
           </div>
         </div>
       </nav>
-      {/* Ensure Dashboard gets a unique key to remount on user change */}
-      <Dashboard key={session.user.id} session={session} />
+      <Dashboard key={session.user.id} session={session} profile={profile} />
     </div>
   );
 }
+
