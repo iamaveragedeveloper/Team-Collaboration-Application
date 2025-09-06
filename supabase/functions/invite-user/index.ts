@@ -19,25 +19,19 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Step 1: Invite the user via Supabase Auth. This sends the email.
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(inviteeEmail)
-    if (inviteError) {
-        // It's okay if the user is already invited or exists. Throw for other errors.
-        if (!inviteError.message.includes('User already invited') && !inviteError.message.includes('registered')) {
-            throw new Error(`Auth Error: ${inviteError.message}`)
-        }
-    }
-    
-    // Step 2: Get the user's ID. They are guaranteed to exist now.
+    // Step 1: Invite the user via Supabase Auth to send the email.
+    await supabaseAdmin.auth.admin.inviteUserByEmail(inviteeEmail)
+
+    // Step 2: Get the invited user's ID.
     const { data: userData, error: userError } = await supabaseAdmin
         .from('profiles')
         .select('id')
         .eq('email', inviteeEmail)
         .single()
-    if (userError) throw new Error('Could not find user profile.')
+    if (userError) throw new Error('Could not find the invited user profile.')
     const userId = userData.id
-    
-    // Step 3: Check if they are already a member of THIS project.
+
+    // Step 3: Check if they are already a member of this project.
     const { data: existingMember } = await supabaseAdmin
         .from('project_members')
         .select('id')
@@ -46,10 +40,10 @@ Deno.serve(async (req) => {
         .maybeSingle()
 
     if (existingMember) {
-        throw new Error('User is already a member of this project.')
+        throw new Error('This user is already a member of the project.')
     }
 
-    // Step 4: Add them to the project_members table.
+    // Step 4: Add the user to the project_members table.
     const { error: insertError } = await supabaseAdmin
         .from('project_members')
         .insert({ project_id: projectId, user_id: userId, role: 'member' })
