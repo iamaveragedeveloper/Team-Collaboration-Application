@@ -1,127 +1,214 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import useClickOutside from '../hooks/useClickOutside';
-import type { Task } from '../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { DndContext, closestCorners, DragEndEvent, DragOverlay, DragStartEvent, useDroppable } from '@d-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@d-kit/sortable';
+import { supabase } from '../lib/supabaseClient';
+import CreateTaskModal from './CreateTaskModal';
+import TaskCard from './TaskCard';
+import type { Task, Project } from '../types';
 
-interface TaskCardProps {
-  task: Task;
-  onStatusChange: (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => void;
-  onDelete: (taskId: string) => void;
+interface TaskBoardProps {
+  project: Project;
+  onBack: () => void;
 }
 
-export default function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+const ColumnHeader = ({ title, count, color }: { title: string; count: number; color: string }) => (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center space-x-2">
+        <div className={`w-3 h-3 rounded-full ${color}`}></div>
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full">
+          {count}
+        </span>
+      </div>
+    </div>
+);
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+const DroppableColumn = ({ 
+  id, 
+  title, 
+  tasks, 
+  onAddTask, 
+  onStatusChange, 
+  onDelete 
+}: {
+  id: string;
+  title: string;
+  tasks: Task[];
+  onAddTask: () => void;
+  onStatusChange: (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => void;
+  onDelete: (taskId: string) => void;
+}) => {
+  const { setNodeRef } = useDroppable({ id });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+  const getColumnColor = () => {
+    switch (id) {
+        case 'todo': return 'bg-gray-100';
+        case 'in_progress': return 'bg-blue-50';
+        case 'done': return 'bg-green-50';
+        default: return 'bg-gray-100';
+      }
   };
 
-  useClickOutside(menuRef, () => setMenuOpen(false));
-
-  const handleStatusChange = (newStatus: 'todo' | 'in_progress' | 'done') => {
-    onStatusChange(task.id, newStatus);
-    setMenuOpen(false);
-  };
-
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      onDelete(task.id);
-    }
-    setMenuOpen(false);
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'todo': return 'To-Do';
-      case 'in_progress': return 'In Progress';
-      case 'done': return 'Done';
-      default: return status;
+  const getButtonColor = () => {
+    switch (id) {
+        case 'todo': return 'text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50';
+        case 'in_progress': return 'text-blue-600 border-blue-300 hover:border-blue-400 hover:bg-blue-100';
+        case 'done': return 'text-green-600 border-green-300 hover:border-green-400 hover:bg-green-100';
+        default: return 'text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50';
     }
   };
 
   return (
-    <div 
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      className={`p-4 mb-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 relative touch-none ${
-        isDragging ? 'opacity-50 rotate-3 scale-105 z-50' : ''
-      }`}
-    >
-      <div className="pr-8">
-        <h4 className="font-semibold text-gray-900 mb-2 leading-tight">
-          {task.title}
-        </h4>
-        
-        {task.description && (
-          <p className="text-sm text-gray-600 mb-3 break-words leading-relaxed">
-            {task.description}
-          </p>
-        )}
-      </div>
-
-      {/* Drag Handle */}
-      <div 
-        {...listeners}
-        className="absolute inset-0 cursor-grab active:cursor-grabbing"
-        style={{ zIndex: 1 }}
-      />
-
-      {/* Action Menu Button -- Made permanently visible */}
-      <button 
-        onClick={(e) => {
-          e.stopPropagation(); // Prevent drag from firing on click
-          setMenuOpen(!menuOpen);
-        }}
-        className="absolute top-3 right-3 p-1 rounded-full hover:bg-gray-100 transition-opacity duration-200"
-        style={{ zIndex: 10 }}
-        aria-label="Task actions"
-      >
-        <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
-      </button>
-
-      {/* Action Menu Dropdown */}
-      {menuOpen && (
-        <div 
-          ref={menuRef} 
-          className="absolute right-0 top-10 z-50 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1"
-        >
-          <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
-            Move to
-          </div>
-          
-          {['todo', 'in_progress', 'done'].map((status) => (
-            <button
-              key={status}
-              onClick={() => handleStatusChange(status as 'todo' | 'in_progress' | 'done')}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                task.status === status ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700'
-              }`}
-              disabled={task.status === status}
-            >
-              {getStatusLabel(status)}
-            </button>
+    <div ref={setNodeRef} className={`${getColumnColor()} rounded-xl p-4 min-h-[600px]`}>
+      <ColumnHeader title={title} count={tasks.length} color={id === 'todo' ? 'bg-gray-400' : id === 'in_progress' ? 'bg-blue-400' : 'bg-green-400'} />
+      <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+        <div className="space-y-3 mb-4 min-h-[400px]">
+          {tasks.map((task) => (
+            <TaskCard 
+              key={task.id} 
+              task={task}
+              onStatusChange={onStatusChange}
+              onDelete={onDelete}
+            />
           ))}
-          
-          <div className="border-t border-gray-100 my-1"></div>
-          
-          <button
-            onClick={handleDelete}
-            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-          >
-            Delete Task
-          </button>
         </div>
+      </SortableContext>
+      <button
+        onClick={onAddTask}
+        className={`w-full px-3 py-2 text-sm font-medium border-2 border-dashed rounded-lg transition-colors flex items-center justify-center space-x-2 ${getButtonColor()}`}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Add Task</span>
+      </button>
+    </div>
+  );
+};
+
+// Ensure the default export is the TaskBoard component
+export default function TaskBoard({ project, onBack }: TaskBoardProps) {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+  const [defaultStatusForModal, setDefaultStatusForModal] = useState<'todo' | 'in_progress' | 'done'>('todo');
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  const fetchTasks = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('project_id', project.id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching tasks:', error);
+      setTasks([]);
+    } else {
+      setTasks(data || []);
+    }
+    setLoading(false);
+  }, [project.id]);
+
+  useEffect(() => {
+    fetchTasks();
+    const channel = supabase
+      .channel(`tasks-for-project-${project.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `project_id=eq.${project.id}` }, () => {
+        fetchTasks(); 
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [project.id, fetchTasks]);
+
+  const handleOpenCreateModal = (status: 'todo' | 'in_progress' | 'done') => {
+    setDefaultStatusForModal(status);
+    setShowCreateTaskModal(true);
+  };
+
+  const handleTaskCreated = (newTask: Task) => {
+    setTasks(prevTasks => [...prevTasks, newTask]);
+  };
+
+  const handleStatusChange = async (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => {
+    setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+    const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
+    if (error) {
+      alert('Could not update task status.');
+      fetchTasks();
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    setTasks(tasks.filter(t => t.id !== taskId));
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+    if (error) {
+      alert('Could not delete task.');
+      fetchTasks();
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find(t => t.id === event.active.id);
+    setActiveTask(task || null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+    if (!over) return;
+    const activeTask = tasks.find(t => t.id === active.id);
+    if (!activeTask) return;
+    const overId = over.id.toString();
+    const overIsColumn = ['todo', 'in_progress', 'done'].includes(overId);
+    let newStatus: 'todo' | 'in_progress' | 'done';
+    if (overIsColumn) {
+      newStatus = overId as 'todo' | 'in_progress' | 'done';
+    } else {
+      const overTask = tasks.find(t => t.id === over.id);
+      if (!overTask) return;
+      newStatus = overTask.status;
+    }
+    if (activeTask.status !== newStatus) {
+      await handleStatusChange(active.id.toString(), newStatus);
+    }
+  };
+
+  const columns = {
+    todo: tasks.filter((t) => t.status === 'todo'),
+    in_progress: tasks.filter((t) => t.status === 'in_progress'),
+    done: tasks.filter((t) => t.status === 'done'),
+  };
+
+  if (loading) {
+    return <div className="text-center py-10">Loading tasks...</div>;
+  }
+
+  return (
+    <div className="w-full">
+      {showCreateTaskModal && (
+        <CreateTaskModal
+          project={project}
+          defaultStatus={defaultStatusForModal}
+          onClose={() => setShowCreateTaskModal(false)}
+          onTaskCreated={handleTaskCreated}
+        />
       )}
+      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <DroppableColumn id="todo" title="To-Do" tasks={columns.todo} onAddTask={() => handleOpenCreateModal('todo')} onStatusChange={handleStatusChange} onDelete={handleDeleteTask} />
+          <DroppableColumn id="in_progress" title="In Progress" tasks={columns.in_progress} onAddTask={() => handleOpenCreateModal('in_progress')} onStatusChange={handleStatusChange} onDelete={handleDeleteTask} />
+          <DroppableColumn id="done" title="Done" tasks={columns.done} onAddTask={() => handleOpenCreateModal('done')} onStatusChange={handleStatusChange} onDelete={handleDeleteTask} />
+        </div>
+        <DragOverlay>
+          {activeTask ? <TaskCard task={activeTask} onStatusChange={() => {}} onDelete={() => {}} /> : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }
