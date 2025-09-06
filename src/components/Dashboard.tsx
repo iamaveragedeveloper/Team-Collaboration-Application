@@ -79,6 +79,7 @@ const ProjectCard = ({ project, onClick }: { project: any; onClick: () => void }
 interface DashboardProps {
   session: Session;
   profile: Profile | null;
+  onNavigateToProfile?: () => void; // Added optional prop to fix build error
 }
 
 export default function Dashboard({ session, profile }: DashboardProps) {
